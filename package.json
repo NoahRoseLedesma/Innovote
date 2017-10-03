@@ -1,0 +1,23 @@
+{
+  "name": "innovote",
+  "version": "0.0.0",
+  "description": "Innovote voting platform",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Noah Rose Ledesma",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "connect-redis": "^3.3.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.0",
+    "express-session": "^1.15.6",
+    "googleapis": "^22.2.0",
+    "mongodb": "^2.2.31",
+    "passport": "^0.4.0",
+    "passport-google-oauth2": "^0.1.6",
+    "readline": "^1.3.0"
+  }
+}
