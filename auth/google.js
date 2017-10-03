@@ -60,8 +60,7 @@ router.get("/logout", function(req, res) {
 });
 
 router.get("/fail", function(req, res) {
-    res.send("Fail!");
-    res.end();
+    genericRepsponses.internalError(res);
 });
 
 // Ensures we have a DB instance.
