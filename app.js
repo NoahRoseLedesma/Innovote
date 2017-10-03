@@ -76,16 +76,6 @@ app.get('/', function(req, res) {
   res.send("Welcome to Innovote.");
 });
 
-// Test-only routing
-app.get('/secure/', ensureAuthenticated, function(req, res) {
-  var emails = req.user.emails;
-  for( i in emails )
-  {
-    res.send(emails[i].value);
-  }
-  res.end();
-});
-
 // Start server
 app.listen(3000, function() {
   console.log('Application started');
