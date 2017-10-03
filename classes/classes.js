@@ -32,6 +32,25 @@ router.get("/find/:class_name", dbHandler.ensureDatabaseConnection, ensureAuthen
   });
 });
 
+router.get("/context/:class_name", dbHandler.ensureDatabaseConnection, ensureAuthenticated, function(req, res){
+  HaveDatabaseInstance();
+
+  db.collection("classes").find({ "name" : req.params.class_name }, { "_id" : false }).toArray(function(err, result){
+    if(err) {
+      console.error(err.stack);
+      genericRepsponses.internalError(res);
+    } else {
+      if( result.length != 1 )
+      {
+        genericRepsponses.BadRequest(res);
+      } else {
+        req.session.classContext = result[0];
+        res.json({"message" : "Class context set sucsessfully."});
+      }
+    }
+  });
+});
+
 // Ensures we have a DB instance.
 function HaveDatabaseInstance()
 {

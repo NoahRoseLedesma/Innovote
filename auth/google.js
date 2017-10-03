@@ -42,6 +42,7 @@ router.get("/user", function(req, res){
           req.session.isInnovoteAuthenticated = true;
           console.log(result)
           req.session.isTeacher = result.isTeacher;
+          req.session.classContext = undefined;
           res.redirect("/");
         }
       }
