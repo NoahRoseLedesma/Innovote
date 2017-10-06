@@ -12,5 +12,10 @@ module.exports = {
   BadRequest: function(res)
   {
     res.status(400).json({"message":"The request could not be completed due to an invalid input."}).end();
+  },
+
+  requiresClassContext: function(res)
+  {
+    res.status(400).json({"message":"Class context is required for this action."}).end();
   }
 }

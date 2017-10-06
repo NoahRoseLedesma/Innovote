@@ -7,7 +7,7 @@ const bodyParser = require( 'body-parser' );
 const RedisStore = require( 'connect-redis' )( session );
 const keychain = require( './configs/private.json');
 const Database = require('./db.js');
-const ensureAuthenticated = require('./ensureAuthenticated.js');
+const ensureAuthenticated = require('./middleware/ensureAuthenticated.js');
 
 var app = express();
 
@@ -70,6 +70,9 @@ app.use('/classes', classes);
 
 const users = require("./users/users.js");
 app.use('/users', users);
+
+const prompts = require("./prompts/prompts.js");
+app.use('/prompts', prompts);
 
 // Root page
 app.get('/', function(req, res) {
