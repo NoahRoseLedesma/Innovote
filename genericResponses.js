@@ -17,5 +17,15 @@ module.exports = {
   requiresClassContext: function(res)
   {
     res.status(400).json({"message":"Class context is required for this action."}).end();
+  },
+
+  failedDependency: function(res)
+  {
+    res.status(424).json({"message":"The request has failed due to the failiure of a previous request."}).end();
+  },
+
+  created : function(res)
+  {
+    res.status(201).json({"message":"The resource has been created sucsessfully"}).end();
   }
 }
