@@ -2,7 +2,7 @@ var router = require("express").Router();
 const dbHandler = require("../db.js")
 const genericRepsponses = require('../genericResponses.js');
 const passport = require('passport');
-const ensureAuthenticated = require('../ensureAuthenticated.js');
+const ensureAuthenticated = require('../middleware/ensureAuthenticated.js');
 
 var db = undefined;
 
