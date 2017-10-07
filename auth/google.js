@@ -39,8 +39,12 @@ router.get("/user", function(req, res){
           genericRepsponses.forbidden(res);
         }
         else {
+          if( result.length != 1 )
+          {
+            console.error("Multiple accounts found during authentication for " + req.user.email );
+          }
           req.session.isInnovoteAuthenticated = true;
-          req.session.isTeacher = result.isTeacher;
+          req.session.isTeacher = result[0].isTeacher;
           req.session.classContext = undefined;
           res.redirect("/");
         }
