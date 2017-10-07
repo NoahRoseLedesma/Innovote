@@ -24,8 +24,23 @@ module.exports = {
     res.status(424).json({"message":"The request has failed due to the failiure of a previous request."}).end();
   },
 
-  created : function(res)
+  created: function(res)
   {
-    res.status(201).json({"message":"The resource has been created sucsessfully"}).end();
+    res.status(201).json({"message":"The resource has been created sucsessfully."}).end();
+  },
+
+  notFound: function(res)
+  {
+    res.status(404).json({"message":"The specified resource could not be found."}).end();
+  },
+
+  updated: function(res)
+  {
+    res.status(200).json({"message":"The specified resource has been updated."}).end();
+  },
+
+  deleted: function(res)
+  {
+    res.status(202).json({"message":"The resource will be deleted."}).end();
   }
 }
