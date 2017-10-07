@@ -13,6 +13,7 @@
     "connect-redis": "^3.3.2",
     "cookie-parser": "^1.4.3",
     "express": "^4.16.0",
+    "express-fileupload": "^0.2.0",
     "express-session": "^1.15.6",
     "googleapis": "^22.2.0",
     "mongodb": "^2.2.31",

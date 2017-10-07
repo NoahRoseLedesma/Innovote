@@ -46,8 +46,7 @@ router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, 
   });
 });
 
-// This should be POST or PUT.
-router.get("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
+router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
   HaveDatabaseInstance();
 
   if( req.session.classContext == undefined ) {
@@ -108,6 +107,101 @@ router.get("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection,
       }
     });
   }
+});
+
+router.patch("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
+  HaveDatabaseInstance();
+  var input = req.params;
+
+  input.startTime = parseInt(input.startTime);
+  input.endTime = parseInt(input.endTime);
+
+  if ( input.startTime == NaN || input.endTime == NaN  || input.startTime > input.endTime )
+  {
+    genericResponses.BadRequest(res);
+    return
+  }
+
+  db.collection("prompts").find({"file" : input.fileName}).toArray(function(err, result){
+    if(err) {
+      console.error(err.stack);
+      genericResponses.internalError(res);
+    } else {
+      if(result.length == 0) {
+        genericResponses.notFound(res);
+      } else {
+        if(result.length > 1)
+        {
+          console.error("Multiple prompts exist with name " + input.fileName + "!");
+        }
+        // Check for conflicts
+        db.collection("prompts").find({
+          "class" : result[0].class,
+          "file"  : {"$ne": input.fileName}, // Dont do a conflict check agianst ourself
+          "start" : {"$lt": input.endTime},
+          "end"   : {"$gt": input.startTime}
+        }).toArray(function(err, result){
+          if(err) {
+            console.error(err.stack);
+            genericResponses.internalError(err);
+          } else {
+            if(result.length != 0 ) {
+              genericResponses.BadRequest(res);
+            } else {
+              db.collection("prompts").update({"file":input.fileName},{"$set" : {"start":input.startTime, "end":input.endTime}}, function(err, result){
+                if(err) {
+                  console.error(err.stack);
+                  genericResponses.internalError(res);
+                } else {
+                  genericResponses.updated(res);
+                }
+              });
+            }
+          }
+        });
+      }
+    }
+  });
+});
+
+router.delete("/:fileName", ensureAuthenticated, isTeacher, function(req, res){
+  HaveDatabaseInstance();
+  var input = req.params;
+
+  db.collection("prompts").find({"file" : input.fileName}).toArray(function(err, result){
+    if(err) {
+      console.error(err.stack);
+      genericResponses.internalError(res);
+    } else {
+      if(result.length == 0) {
+        genericResponses.notFound(res);
+      } else {
+        if(result.length > 1)
+        {
+          console.error("Multiple prompts exist with name " + input.fileName + "!");
+        }
+        db.collection("prompts").deleteMany({"file" : input.fileName}, function(err, result){
+          if(err) {
+            console.error(err.stack);
+            genericResponses.internalError(res);
+          } else {
+            genericResponses.deleted(res); // 202 - Sever accepts request and will act on it later.
+
+            // Delete the file
+            fs.unlink(__dirname + "/content/" + input.fileName, function(err){
+              if(err) {
+                // Because we already deleted the database entry for this prompt
+                // If deleting the file throws an error we consider it to be an
+                // internal only error (eg. not telling client) because in doing
+                // so we may desync database with expected.
+                console.error(err.stack);
+              }
+            });
+          }
+        });
+      }
+    }
+  });
 });
 
 router.post("/upload", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
