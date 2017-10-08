@@ -13,30 +13,43 @@ var db = undefined;
 
 router.use(fileUpload());
 
-router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, ensureClassContext, function(req, res) {
+// Gets the current prompt.
+// Define this as a child of router so that it will be exported in module.exports
+// Returns undefined through callback if there is no current prompt
+// Useage requires route has ensureDatabaseConnection, ensureAuthenticated, and ensureClassContext
+router.getCurrentPrompt = function(req, next){
   HaveDatabaseInstance();
 
   const currentTime = Date.now();
   db.collection("prompts").find({ "class" : req.session.classContext.name, "start" : { "$lt" : currentTime }, "endVoting" : { "$gt" : currentTime } }, { "_id" : false }).toArray(function(err, result){
     if(err) {
-      console.error(err.stack);
-      genericResponses.internalError(res);
+      next(err, undefined);
     } else {
       if( result.length == 0)
       {
-        res.send(result).end();
+        next(undefined, undefined);
       } else {
-        fs.readFile("./prompts/content/" + result[0].file, function(err, data){
-          if(err) {
-            console.error(err.stack);
-            genericResponses.internalError(res);
-          } else {
-            // Sort of a hack, but we replace the "file" entry in our object with the content of the file
-            result[0].file = data;
-            res.json(result[0]);
-          }
-        });
+        next(undefined, result)
       }
+    }
+  });
+}
+
+router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, ensureClassContext, function(req, res){
+  router.getCurrentPrompt(req, function(err, result){
+    if(err) {
+      console.error(err.stack);
+      genericResponses.internalError(res);
+    } else {
+      fs.readFile("./prompts/content/" + result[0].file, function(err, data){
+        if(err) {
+          next(err, undefined);
+        } else {
+          // Sort of a hack, but we replace the "file" entry in our object with the content of the file
+          result[0].file = data;
+          res.json(result).end();
+        }
+      });
     }
   });
 });

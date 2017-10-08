@@ -74,6 +74,9 @@ app.use('/users', users);
 const prompts = require("./prompts/prompts.js");
 app.use('/prompts', prompts);
 
+const submissions = require("./submissions/submissions.js");
+app.use('/submissions', submissions);
+
 // Root page
 app.get('/', function(req, res) {
   res.send("Welcome to Innovote.");
