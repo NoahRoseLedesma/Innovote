@@ -3,6 +3,7 @@ const dbHandler = require("../db.js")
 const genericResponses = require('../genericResponses.js');
 const passport = require('passport');
 const ensureAuthenticated = require('../middleware/ensureAuthenticated.js');
+const ensureClassContext = require("../middleware/ensureClassContext.js");
 const isTeacher = require('../middleware/isTeacher.js');
 const fs = require('fs');
 const fileUpload = require('express-fileupload');
@@ -12,14 +13,8 @@ var db = undefined;
 
 router.use(fileUpload());
 
-router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, function(req, res) {
+router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, ensureClassContext, function(req, res) {
   HaveDatabaseInstance();
-
-  if(req.session.classContext == undefined)
-  {
-    genericResponses.requiresClassContext(res);
-    return;
-  }
 
   const currentTime = Date.now();
   db.collection("prompts").find({ "class" : req.session.classContext.name, "start" : { "$lt" : currentTime }, "end" : { "$gt" : currentTime } }, { "_id" : false }).toArray(function(err, result){
@@ -46,13 +41,8 @@ router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, 
   });
 });
 
-router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
+router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, ensureClassContext, isTeacher, function(req, res){
   HaveDatabaseInstance();
-
-  if( req.session.classContext == undefined ) {
-    genericResponses.requiresClassContext(res);
-    return;
-  }
 
   var input = req.params;
   if(!input || !input.fileName || !input.startTime || !input.endTime )
