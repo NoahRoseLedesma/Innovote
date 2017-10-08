@@ -17,7 +17,7 @@ router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, 
   HaveDatabaseInstance();
 
   const currentTime = Date.now();
-  db.collection("prompts").find({ "class" : req.session.classContext.name, "start" : { "$lt" : currentTime }, "end" : { "$gt" : currentTime } }, { "_id" : false }).toArray(function(err, result){
+  db.collection("prompts").find({ "class" : req.session.classContext.name, "start" : { "$lt" : currentTime }, "endVoting" : { "$gt" : currentTime } }, { "_id" : false }).toArray(function(err, result){
     if(err) {
       console.error(err.stack);
       genericResponses.internalError(res);
@@ -41,11 +41,11 @@ router.get("/current", dbHandler.ensureDatabaseConnection, ensureAuthenticated, 
   });
 });
 
-router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, ensureClassContext, isTeacher, function(req, res){
+router.post("/:fileName/:startTime/:endSubmissionTime/:endVotingTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, ensureClassContext, isTeacher, function(req, res){
   HaveDatabaseInstance();
 
   var input = req.params;
-  if(!input || !input.fileName || !input.startTime || !input.endTime )
+  if(!input || !input.fileName || !input.startTime || !input.endSubmissionTime || !input.endVotingTime )
   {
     genericResponses.BadRequest(res);
   } else {
@@ -53,9 +53,10 @@ router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection
       if( !err ) {
         // This means the file exists.
         input.startTime = parseInt(input.startTime);
-        input.endTime = parseInt(input.endTime);
+        input.endSubmissionTime = parseInt(input.endSubmissionTime);
+        input.endVotingTime = parseInt(input.endVotingTime);
 
-        if ( input.startTime == NaN || input.endTime == NaN  || input.startTime > input.endTime )
+        if ( input.startTime == NaN || input.endSubmissionTime == NaN  || input.endVotingTime == NaN || !areNumbersAcendingInOrder(input.startTime, input.endSubmissionTime, input.endVotingTime))
         {
           genericResponses.BadRequest(res);
         } else {
@@ -66,8 +67,8 @@ router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection
               "class" : req.session.classContext.name,
               // See https://stackoverflow.com/questions/26876803/mongodb-find-date-range-if-overlap-with-other-dates
               // for explination on time overlaps.
-              "start" : {"$lt": input.endTime},
-              "end"   : {"$gt": input.startTime}
+              "start" : {"$lt": input.endVotingTime},
+              "endVoting"   : {"$gt": input.startTime}
             }]}).toArray(function(err, result){
               if(err) {
                 console.error(err.stack);
@@ -77,7 +78,13 @@ router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection
                 {
                   genericResponses.BadRequest(res);
                 } else {
-                  db.collection("prompts").insert({ "file" : input.fileName, "start" : input.startTime, "end" : input.endTime, "class" : req.session.classContext.name }, function(err, result){
+                  db.collection("prompts").insert({
+                     "file" : input.fileName,
+                     "start" : input.startTime,
+                     "endSubmissionTime" : input.endSubmissionTime,
+                     "endVotingTime" : input.endVotingTime,
+                     "class" : req.session.classContext.name
+                   }, function(err, result){
                     if(err) {
                       console.error(err.stack);
                       genericResponses.internalError(res);
@@ -99,14 +106,15 @@ router.post("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection
   }
 });
 
-router.patch("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
+router.patch("/:fileName/:startTime/:endSubmissionTime/:endVotingTime", dbHandler.ensureDatabaseConnection, ensureAuthenticated, isTeacher, function(req, res){
   HaveDatabaseInstance();
   var input = req.params;
 
   input.startTime = parseInt(input.startTime);
-  input.endTime = parseInt(input.endTime);
+  input.endSubmissionTime = parseInt(input.endSubmissionTime);
+  input.endVotingTime = parseInt(input.endVotingTime);
 
-  if ( input.startTime == NaN || input.endTime == NaN  || input.startTime > input.endTime )
+  if ( input.startTime == NaN || input.endTime == NaN  || input.endVotingTime == NaN || !areNumbersAcendingInOrder(input.startTime, input.endSubmissionTime, input.endVotingTime) )
   {
     genericResponses.BadRequest(res);
     return
@@ -128,8 +136,8 @@ router.patch("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnectio
         db.collection("prompts").find({
           "class" : result[0].class,
           "file"  : {"$ne": input.fileName}, // Dont do a conflict check agianst ourself
-          "start" : {"$lt": input.endTime},
-          "end"   : {"$gt": input.startTime}
+          "start" : {"$lt": input.endVoting},
+          "endVoting"   : {"$gt": input.startTime}
         }).toArray(function(err, result){
           if(err) {
             console.error(err.stack);
@@ -138,7 +146,7 @@ router.patch("/:fileName/:startTime/:endTime", dbHandler.ensureDatabaseConnectio
             if(result.length != 0 ) {
               genericResponses.BadRequest(res);
             } else {
-              db.collection("prompts").update({"file":input.fileName},{"$set" : {"start":input.startTime, "end":input.endTime}}, function(err, result){
+              db.collection("prompts").update({"file":input.fileName},{"$set" : {"start":input.startTime, "endSubmission":input.endSubmissionTime, "endVoting":input.endVotingTime }}, function(err, result){
                 if(err) {
                   console.error(err.stack);
                   genericResponses.internalError(res);
@@ -218,6 +226,18 @@ router.post("/upload", dbHandler.ensureDatabaseConnection, ensureAuthenticated, 
 function HaveDatabaseInstance() {
   if( db == undefined )
     db = dbHandler.getDatabaseInstance();
+}
+
+// Returns true if the positive numbers are in acending order.
+function areNumbersAcendingInOrder() {
+  var previousNumber = 0;
+  for(var index = 0; index < arguments.length; index++) {
+    if( arguments[index] - previousNumber < 0 ) {
+      return false;
+    }
+    previousNumber = arguments[index];
+  }
+  return true;
 }
 
 module.exports = router;
