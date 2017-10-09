@@ -6,6 +6,7 @@ const session = require('express-session');
 const bodyParser = require( 'body-parser' );
 const RedisStore = require( 'connect-redis' )( session );
 const keychain = require( './configs/private.json');
+const config = require('./configs/public.json');
 const Database = require('./db.js');
 const ensureAuthenticated = require('./middleware/ensureAuthenticated.js');
 
@@ -27,7 +28,7 @@ passport.use( new GoogleStrategy(
   {
     clientID:     keychain.google_api.web.client_id,
     clientSecret: keychain.google_api.web.client_secret,
-    callbackURL: "http://localhost:3000/auth/google/callback",
+    callbackURL:  config.google_callback_url,
     passReqToCallback   : true
   },
 
@@ -35,7 +36,6 @@ passport.use( new GoogleStrategy(
   {
     process.nextTick(function ()
     {
-      // TODO: Manage users by something other than profile
       return done(null, profile);
     });
   }
@@ -48,7 +48,7 @@ app.use( bodyParser.urlencoded({
 	extended: true
 }));
 app.use( session({
-	secret: 'fd51cg0yD9',
+	secret: keychain.store_secret,
 	name:   'innovoteStore',
 	store:  new RedisStore({
 		host: '127.0.0.1',
