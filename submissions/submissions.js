@@ -56,7 +56,6 @@ router.get("/getall/:prompt", dbHandler.ensureDatabaseConnection, ensureAuthenti
 
   const currentTime = Date.now();
   // Check if we are in the voting phase.
-  console.log(req.params.prompt, req.session.classContext.name);
   db.collection("prompts").find({
      "file" : req.params.prompt,
      "class" : req.session.classContext.name,
